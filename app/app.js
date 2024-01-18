@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const userRouter = require('../router/userRouter');
 const app = express();
 
 // use middleware to parse incoming requests with JSON payloads
@@ -18,6 +19,7 @@ app.get('/', (req, res, next) => {
 })
 
 // routes
+app.use("/users", userRouter);
 
 
 // bad url or error handling
