@@ -1,65 +1,50 @@
 const express = require('express');
+const { findUser, saveUser } = require('../db/db');
+const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+const User = require('../models/userModel');
 
 const router = express.Router();
 
-router.get('/', (req, res, next) => {
-    res.status(200).json({
-        message: 'Handling GET requests to /users',
-        method: {
-            hostname: req.hostname,
-            method: req.method,
+router.post('/register', async (req, res, next) => {
+  try {
+    const user = await findUser({ email: req.body.email });
+
+    if (user) {
+      return res.status(409).json({
+        message: 'User exists try logging in',
+      });
+    } else {
+      // map req.body.password to our user model
+      const user = User();
+      user._id = new mongoose.Types.ObjectId();
+
+      const newUser = Object.assign(user, req.body);
+
+      bcrypt.hash(newUser.password, 10, async (err, hash) => {
+        if (err) {
+          return res.status(500).json({
+            message: 'Error hashing password',
+            error: err,
+          });
         }
+        newUser.password = hash;
+
+        const dbUser = await saveUser(newUser);
+        res.status(201).json({
+          message: 'User created successfully',
+          user: dbUser,
+        });
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error creating user',
+      error,
     });
+  }
 });
 
-router.get("/:id", (req, res, next) => {
-    res.status(200).json({
-        message: `Handling GET requests to ${req.params.id}`,
-        methadata: {
-            id: req.params.id,
-            hostname: req.hostname,
-            method: req.method,
-
-        }
-    });
-});
-
-router.post("/:id", (req, res, next) => {
-    const name = req.body.name;
-    res.status(201).json({
-        message: `Handling POST requests to ${req.params.id} with the name ${name}`,
-        methadata: {
-            id: req.params.id,
-            name: name,
-            hostname: req.hostname,
-            method: req.method,
-
-        }
-    });
-});
-
-router.put("/:id", (req, res, next) => {
-    res.status(201).json({
-        message: `Handling PUT requests to ${req.params.id}`,
-        methadata: {
-            id: req.params.id,
-            hostname: req.hostname,
-            method: req.method,
-
-        }
-    });
-});
-
-router.delete("/:id", (req, res, next) => {
-    res.status(201).json({
-        message: `Handling DELETE requests to ${req.params.id}`,
-        methadata: {
-            id: req.params.id,
-            hostname: req.hostname,
-            method: req.method,
-
-        }
-    });
-});
+router.post('/login', (req, res, next) => {});
 
 module.exports = router;
